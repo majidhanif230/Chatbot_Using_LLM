@@ -34,7 +34,7 @@ The objective of this project is to develop a chatbot that offers comprehensive 
 ## 🚀 Getting Started
 
 1. Clone the repository:
-   git clone https://github.com/yourusername/chat-with-books.git
+   git clone https://github.com/majidhanif230/Chatbot_Using_LLM
    cd chat-with-books
 2. pip install -r requirements.txt
 3. streamlit run app.py
