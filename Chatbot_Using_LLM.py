@@ -13,7 +13,7 @@ from langchain.schema import Document
 from langchain.prompts import PromptTemplate
 
 # --- API Key Setup ---
-GOOGLE_API_KEY = "Add Your Key"
+GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 genai.configure(api_key=GOOGLE_API_KEY)
 
 # --- PDF Text Extraction Function ---
@@ -68,9 +68,7 @@ def get_conversational_chain():
     Answer the question as detailed as possible from the provided context, make sure to provide all the details. If the answer is not in 
     provided context just say, "I don't have this information. For more information, contact +123456789." Don't provide the wrong answer.
     Also, with every response you provide, make sure to mention the source of the information in next line like "This information is taken from {pdf_name} on page {page_number}."\n\n
-    Context:\n {context}?\n
-    Question: \n{question}\n
-
+    Context:\n {context}?\n\n    Question: \n{question}\n\n
     Answer:
     """
 
