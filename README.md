@@ -1,43 +1,79 @@
-# 📚 Chat with Books - AI-Powered PDF Chatbot
+# Chat with Books — AI-Powered PDF Chatbot
 
-Welcome to the **Chat with Books** project, an advanced AI-powered PDF chatbot designed to provide detailed and accurate responses based on the context extracted from PDF documents. This project leverages the power of **Generative AI** and **Retrieval-Augmented Generation (RAG)** to ensure that the responses are not only contextually relevant but also backed by precise information from the source documents.
+A Streamlit chatbot that answers questions from your own PDF documents using Generative AI and Retrieval-Augmented Generation (RAG). Upload PDFs, ask a question, and get a detailed answer drawn from the documents — with a citation naming the source PDF and page number. If the answer is not in the documents, the bot says so instead of inventing one.
 
-## 📝 Overview
+## Key Features
 
-The objective of this project is to develop a chatbot that offers comprehensive answers to user queries by analyzing the content of uploaded PDFs. The bot efficiently handles large documents, breaks down the content into manageable chunks, and retrieves the most relevant passages to generate responses. Each response is accompanied by a citation that specifies the PDF and page number from which the information was derived. If the information is not found in the PDFs, the chatbot will indicate this and provide a contact number for further inquiries.
+- **Chat with your PDFs** — upload one or more PDFs in the sidebar and ask questions about their contents.
+- **RAG pipeline** — answers are generated from retrieved document passages, keeping them grounded in your files.
+- **Source attribution** — every answer cites its source, e.g. *"This information is taken from \<pdf name\> on page \<page number\>."*
+- **Honest fallback** — when the information is not in the provided context, the bot replies that it doesn't have the information and gives a contact number for further enquiries.
+- **Streamlit UI** — simple chat interface with a file uploader and a "Submit & Process" step that builds the search index.
+- **Bonus notebook** — `nb/Gemma3_(270M).ipynb` fine-tunes Google's Gemma-3-270M model with LoRA (see below).
 
-## 🚀 Features
+## How It Works
 
-- **Generative AI & RAG Integration**: Combines the capabilities of Generative AI and RAG to ensure responses are accurate and supported by the relevant information from the PDFs.
-- **Document Parsing**: Efficiently processes large PDF documents, breaking down the text into chunks for better analysis.
-- **Contextual Responses**: The chatbot is designed to retrieve and generate responses that are contextually relevant, providing accurate and detailed answers.
-- **Source Attribution**: Every response includes a citation indicating the source PDF and the exact page number where the information was found.
-- **User-Friendly Interface**: Utilizes Streamlit to create an interactive and easy-to-use interface.
+1. **PDF text extraction** — `PyPDF2` reads each uploaded PDF, tracking the source file name and page number of every passage.
+2. **Text chunking** — `RecursiveCharacterTextSplitter` splits the text into 1000-character chunks with 200 characters of overlap.
+3. **Embeddings** — chunks are embedded with Google's `models/embedding-001` model.
+4. **Vector store** — embeddings are stored in a local FAISS index (`faiss_index/`), rebuilt each time PDFs are processed.
+5. **Retrieval** — a question is embedded and the most similar chunks are pulled from FAISS.
+6. **Answer generation** — a LangChain QA chain (`load_qa_chain`, `stuff` type) with `ChatGoogleGenerativeAI` (`gemini-pro`, temperature 0.8) and a custom prompt answers from the retrieved context and appends the source citation.
 
-## ⚙️ How It Works
+### Gemma-3 fine-tuning notebook (`nb/Gemma3_(270M).ipynb`)
 
-1. **PDF Text Extraction**: The bot extracts text from uploaded PDF files and organizes it into chunks.
-2. **Semantic Search**: Text chunks are encoded into vectors using Sentence Transformers, enabling sophisticated semantic search capabilities.
-3. **Vector Store Creation**: A FAISS index is created to allow fast retrieval of relevant text passages based on user queries.
-4. **Conversational Chain**: The chatbot generates answers by using the retrieved passages, ensuring that the responses are accurate and context-aware.
-5. **User Input Handling**: Users can ask questions, and the bot processes the query to provide the most relevant response along with source attribution.
+A separate Colab notebook that fine-tunes `unsloth/gemma-3-270m-it` with LoRA (rank 128, alpha 128) using Unsloth, on the first 10,000 examples of the `Thytu/ChessInstruct` dataset. Training uses the TRL `SFTTrainer` (100 steps, batch size 8, learning rate 5e-5, max sequence length 2048), trains on assistant responses only, and saves the LoRA adapters locally (`gemma-3/`), with optional merge/export to 16-bit, 4-bit, or GGUF. In the recorded run, training took about 8.3 minutes on a free Tesla T4.
 
-## 🛠️ Technologies Used
+## Tech Stack
 
-- **Streamlit**: For creating a web-based interactive user interface.
-- **PyPDF2**: For extracting text from PDF files.
-- **LangChain**: For managing text chunking, embedding, and conversational chains.
-- **Google Generative AI**: For generating responses.
-- **FAISS**: For efficient similarity search and passage retrieval.
-- **Sentence Transformers**: For encoding text into vectors.
+- **Python**, **Streamlit** — web interface
+- **LangChain** — text splitting, QA chain, prompt templates
+- **Google Generative AI** — Gemini Pro for answers, `embedding-001` for embeddings
+- **FAISS** (`faiss-cpu`) — vector similarity search
+- **PyPDF2** — PDF text extraction
+- **Unsloth, TRL, PEFT** — LoRA fine-tuning in the Gemma-3 notebook
 
-## 🚀 Getting Started
+## How to Run
 
-1. Clone the repository:
-   git clone https://github.com/majidhanif230/Chatbot_Using_LLM
-   cd chat-with-books
-2. pip install -r requirements.txt
-3. streamlit run app.py
-## 🙏 Acknowledgements
-This project was provided by Machine Learning 1 Pvt Ltd and completed by Majid Hanif. Special thanks to the open-source community and the developers of the libraries used in this project for their invaluable contributions.
+```bash
+git clone https://github.com/majidhanif230/Chatbot_Using_LLM.git
+cd Chatbot_Using_LLM
+pip install -r requirements.txt.txt
+```
 
+1. Set your Google API key (the app uses `GOOGLE_API_KEY` for Gemini and embeddings).
+2. Start the app:
+
+```bash
+streamlit run Chatbot_Using_LLM.py
+```
+
+3. In the sidebar, upload your PDFs and click **Submit & Process**. Then type a question in the main panel to chat with your documents.
+
+To run the Gemma-3 notebook, open `nb/Gemma3_(270M).ipynb` in Google Colab (free Tesla T4) and run all cells.
+
+## Project Structure
+
+```
+Chatbot_Using_LLM/
+├── Chatbot_Using_LLM.py        # Streamlit app: PDF upload, FAISS indexing,
+│                               # Gemini-powered QA chain with source citations
+├── requirements.txt.txt        # streamlit, PyPDF2, langchain, langchain-google-genai,
+│                               # google-generativeai, faiss-cpu
+├── nb/
+│   └── Gemma3_(270M).ipynb    # LoRA fine-tuning of Gemma-3-270M on ChessInstruct (Unsloth)
+├── .devcontainer/              # Dev container configuration
+└── README.md
+```
+
+## Acknowledgements
+
+Project provided by Machine Learning 1 Pvt Ltd; completed by Majid Hanif.
+
+## Author
+
+**Majid Hanif** — AI Engineer · BS Artificial Intelligence, The Islamia University of Bahawalpur (CGPA 3.81/4.0)
+
+- Portfolio: https://snap-portfolio-me.lovable.app/portfolio
+- LinkedIn: https://www.linkedin.com/in/majid-hanif-23720b2a2/
+- GitHub: https://github.com/majidhanif230
